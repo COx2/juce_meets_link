@@ -64,7 +64,7 @@ public:
 		linkStatus.setCaretVisible(false);
 		linkStatus.setColour(TextEditor::backgroundColourId, Colours::white);
 		linkStatus.setColour(TextEditor::textColourId, Colours::black);
-		linkStatus.setFont(Font(22.0f));
+		linkStatus.setFont(Font(20.0f));
 		linkStatus.setBoundsRelative(0.3, 0.3, 0.4, 0.4);
 
 		addAndMakeVisible(linkButton);
@@ -157,7 +157,7 @@ public:
 
 		linkStatus.setText(statusInfo, dontSendNotification);
 
-		tempoSlider.setValue(timeline.tempo(), dontSendNotification);
+		tempoSlider.setValue(tempo, dontSendNotification);
 
     }
 
@@ -204,14 +204,6 @@ public:
 
 	void timerCallback() override
 	{
-		const auto time = link->clock().micros();
-
-		auto timeline = link->captureAppTimeline();
-
-		timeline.setTempo(tempoSlider.getValue(), time);
-
-		link->commitAudioTimeline(timeline);
-
 		repaint();
 	}
 

@@ -13,7 +13,7 @@
   </MAINGROUP>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" extraDefs="LINK_PLATFORM_MACOSX=1"
-               extraCompilerFlags="-Weverything -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-deprecated -Wno-disabled-macro-expansion -Wno-exit-time-destructors -Wno-padded -Wno-reserved-id-macro -Wno-unknown-warning-option -Wno-unused-member-function">
+               extraCompilerFlags="">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" enablePluginBinaryCopyStep="1" isDebug="1" optimisation="1"
                        linkTimeOptimisation="0" targetName="JuceLink" headerPath="../../../Dependencies/link/include&#10;../../../Dependencies/link/modules/asio-standalone/asio/include"/>
@@ -39,9 +39,8 @@
     </XCODE_MAC>
     <XCODE_IPHONE targetFolder="Builds/iOS" iosScreenOrientation="portraitlandscape"
                   iPadScreenOrientation="portraitlandscape" iosDeviceFamily="1,2"
-                  extraDefs="" extraCompilerFlags="-Weverything -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-deprecated -Wno-disabled-macro-expansion -Wno-exit-time-destructors -Wno-padded -Wno-reserved-id-macro -Wno-unknown-warning-option -Wno-unused-member-function"
-                  microphonePermissionNeeded="1" iosBackgroundAudio="1" iosBackgroundBle="1"
-                  iosPushNotifications="1">
+                  extraDefs="LINK_PLATFORM_MACOSX=1" extraCompilerFlags="" microphonePermissionNeeded="1"
+                  iosBackgroundAudio="1" iosBackgroundBle="1" iosPushNotifications="1">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" enablePluginBinaryCopyStep="1" isDebug="1" optimisation="1"
                        linkTimeOptimisation="0" targetName="JuceLink" headerPath="../../../Dependencies/link/include&#10;../../../Dependencies/link/modules/asio-standalone/asio/include"/>
