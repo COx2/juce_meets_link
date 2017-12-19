@@ -53,6 +53,7 @@ public:
 		tempoSlider.setRange(0, 300, 0);
 		tempoSlider.setSliderStyle(Slider::LinearBar);
 		tempoSlider.setTextBoxStyle(Slider::TextBoxAbove, true, 80, 20);
+		tempoSlider.setColour(Slider::trackColourId, Colour(0xff00972c));
 		tempoSlider.setValue(120);
 		tempoSlider.setBoundsRelative(0.3, 0.05, 0.6, 0.1);
 		tempoSlider.addListener(this);
@@ -72,6 +73,11 @@ public:
 		linkButton.setColour(TextButton::buttonOnColourId, Colours::yellowgreen);
 		linkButton.setBoundsRelative(0.05, 0.05, 0.15, 0.1);
 		linkButton.addListener(this);
+
+		addAndMakeVisible(deviceSettingButton);
+		deviceSettingButton.setButtonText("Device Setting");
+		deviceSettingButton.setBoundsRelative(0.05, 0.25, 0.15, 0.1);
+		deviceSettingButton.addListener(this);
 
 		startTimerHz(60);
 		
@@ -105,6 +111,8 @@ public:
         // Right now we are not producing any data, in which case we need to clear the buffer
         // (to prevent the output of random noise)
         bufferToFill.clearActiveBufferRegion();
+
+
     }
 
     void releaseResources() override
@@ -126,8 +134,9 @@ public:
 
 		if (link->isEnabled()) {
 			statusInfo += String("Link Enable" + String("\n"));
-			statusInfo += String("Callback Tempo: " + String(tempo) + String("\n"));
-			statusInfo += String("Callback Peer: " + String(numPeers) + String("\n"));
+			//statusInfo += "-------------------------------\n";
+			//statusInfo += String("Callback Tempo: " + String(tempo) + String("\n"));
+			//statusInfo += String("Callback Peer: " + String(numPeers) + String("\n"));
 		}
 		else
 			statusInfo += String("Link Disable" + String("\n"));
@@ -136,11 +145,20 @@ public:
 
 		const auto time = link->clock().micros();
 		auto timeline = link->captureAppTimeline();
-		statusInfo += genState(time, timeline, link->numPeers(), quantum);
+		//const auto beats = timeline.beatAtTime(time, quantum);
+		//const auto phase = timeline.phaseAtTime(time, quantum);
+
+		statusInfo += String("Peers: "   + String(link->numPeers()) + "\n");
+		statusInfo += String("Quantum: " + String(quantum) + "\n");
+		statusInfo += String("Tempo: "   + String(timeline.tempo()) + "\n");
+		statusInfo += String("Beats: "   + String(timeline.beatAtTime(time, quantum)) + "\n");
+		statusInfo += String("Phase: "   + String(timeline.phaseAtTime(time, quantum)) + "\n");
+		//statusInfo += String("Time: " + String(timeline.timeAtBeat(beats, quantum).count()) + "\n");
 
 		linkStatus.setText(statusInfo, dontSendNotification);
 
-		tempoSlider.setValue(tempo, dontSendNotification);
+		tempoSlider.setValue(timeline.tempo(), dontSendNotification);
+
     }
 
     void resized() override
@@ -153,6 +171,8 @@ public:
 		linkButton.setBoundsRelative(0.05, 0.05, 0.15, 0.1);
 
 		tempoSlider.setBoundsRelative(0.3, 0.05, 0.6, 0.1);
+
+		deviceSettingButton.setBoundsRelative(0.05, 0.25, 0.15, 0.1);
     }
 
 
@@ -164,62 +184,75 @@ public:
 
 			link->enable(linkButton.getToggleState());
 		}
-
+		else if (button == &deviceSettingButton)
+			showDeviceSetting();
 	}
 
 	void sliderValueChanged(Slider* slider) override
 	{
 		if (slider == &tempoSlider) {
+
+			const auto time = link->clock().micros();
 		
 			auto timeline = link->captureAppTimeline();
-			
-			timeline.setTempo(tempoSlider.getValue(), link->clock().micros());
+
+			timeline.setTempo(tempoSlider.getValue(), time);
 
 			link->commitAudioTimeline(timeline);
 		}
 	}
 
-    
+	void timerCallback() override
+	{
+		const auto time = link->clock().micros();
+
+		auto timeline = link->captureAppTimeline();
+
+		timeline.setTempo(tempoSlider.getValue(), time);
+
+		link->commitAudioTimeline(timeline);
+
+		repaint();
+	}
+
 private:
     //==============================================================================
+	void showDeviceSetting()
+	{
+		AudioDeviceSelectorComponent selector(deviceManager,
+			0, 256,
+			0, 256,
+			true, true,
+			true, false);
+
+		selector.setSize(400, 600);
+
+		DialogWindow::LaunchOptions dialog;
+		dialog.content.setNonOwned(&selector);
+		dialog.dialogTitle = "Audio/MIDI Device Settings";
+		dialog.componentToCentreAround = this;
+		dialog.dialogBackgroundColour = getLookAndFeel().findColour(ResizableWindow::backgroundColourId);
+		dialog.escapeKeyTriggersCloseButton = true;
+		dialog.useNativeTitleBar = false;
+		dialog.resizable = false;
+		dialog.useBottomRightCornerResizer = false;
+
+		dialog.runModal();
+	}
 
     // Your private member variables go here...
-	TextEditor linkStatus;
-	TextButton linkButton;
-	Slider tempoSlider;
-
 	ScopedPointer<ableton::Link> link;
 	double tempo;
 	std::size_t numPeers;
 	std::size_t quantum;
-	std::chrono::microseconds newValue;
 
-	void timerCallback() override
-	{
-		repaint();
-	}
+	TextEditor linkStatus;
+	TextButton linkButton;
+	Slider tempoSlider;
 
-	void clearLine()
-	{
-		std::cout << "   \r" << std::flush;
-		std::cout.fill(' ');
-	}
-
-	String genState(const std::chrono::microseconds time, const ableton::Link::Timeline timeline, const std::size_t numPeers, const double quantum)
-	{
-		String str = "";
-		
-		const auto beats = timeline.beatAtTime(time, quantum);
-		const auto phase = timeline.phaseAtTime(time, quantum);
-
-		str += String("Peers: " + String(numPeers) + "\n");
-		str += String("Quantum: " + String(quantum) + "\n");
-		str += String("Tempo: " + String(timeline.tempo()) + "\n");
-		str += String("Beats: " + String(beats) + "\n");
-		str += String("Phase: " + String(phase) + "\n");
-
-		return str;
-	}
+	TextButton deviceSettingButton;
+	
+	
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
 };
