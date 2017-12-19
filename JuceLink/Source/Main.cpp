@@ -70,6 +70,10 @@ public:
             setContentOwned (createMainContentComponent(), true);
             setResizable (true, true);
 
+#if JUCE_IOS || JUCE_ANDROID
+            setFullScreen(true);
+#endif
+            
             centreWithSize (getWidth(), getHeight());
             setVisible (true);
         }

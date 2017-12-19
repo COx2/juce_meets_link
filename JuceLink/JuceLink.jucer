@@ -40,7 +40,7 @@
     <XCODE_IPHONE targetFolder="Builds/iOS" iosScreenOrientation="portraitlandscape"
                   iPadScreenOrientation="portraitlandscape" iosDeviceFamily="1,2"
                   extraDefs="LINK_PLATFORM_MACOSX=1" extraCompilerFlags="" microphonePermissionNeeded="1"
-                  iosBackgroundAudio="1" iosBackgroundBle="1" iosPushNotifications="1">
+                  iosBackgroundAudio="1" iosBackgroundBle="1" iosPushNotifications="0">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" enablePluginBinaryCopyStep="1" isDebug="1" optimisation="1"
                        linkTimeOptimisation="0" targetName="JuceLink" headerPath="../../../Dependencies/link/include&#10;../../../Dependencies/link/modules/asio-standalone/asio/include"/>
