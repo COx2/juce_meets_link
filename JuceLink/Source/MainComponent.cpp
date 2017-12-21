@@ -10,6 +10,9 @@
 
 // include link library.
 #include "ableton/Link.hpp"
+#include "ableton/link/HostTimeFilter.hpp"
+////
+#define M_PI       3.14159265358979323846   // pi
 
 //==============================================================================
 /*
@@ -100,6 +103,8 @@ public:
         // but be careful - it will be called on the audio thread, not the GUI thread.
 
         // For more details, see the help for AudioProcessor::prepareToPlay()
+
+		mSampleRate = sampleRate;
     }
 
     void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill) override
@@ -112,8 +117,82 @@ public:
         // (to prevent the output of random noise)
         bufferToFill.clearActiveBufferRegion();
 
+		// As long as the engine is playing, generate metronome clicks in
+		// the buffer at the appropriate beats.
 
+		//const auto hostTime = link->clock().micros();
+
+		auto hostTime = link->clock().micros();//std::chrono::microseconds(0);
+		if (deviceManager.getCurrentAudioDevice() != nullptr) {
+
+			auto mSampleRate = deviceManager.getCurrentAudioDevice()->getCurrentSampleRate();
+			auto dOutputLatency = deviceManager.getCurrentAudioDevice()->getOutputLatencyInSamples();
+			auto dBufferSize = deviceManager.getCurrentAudioDevice()->getCurrentBufferSizeSamples();
+
+			auto mOutputLatency = std::chrono::microseconds(llround(dOutputLatency / mSampleRate));
+
+			mOutputLatency += std::chrono::microseconds(llround(1.0e6 * dBufferSize));
+
+			const auto bufferBeginAtOutput = hostTime + mOutputLatency;
+
+			auto timeline = link->captureAppTimeline();
+
+			auto numSamples = bufferToFill.buffer->getNumSamples();
+
+			// Timeline modifications are complete, commit the results
+			link->commitAppTimeline(timeline);
+
+			renderMetronomeIntoBuffer(timeline, quantum, bufferBeginAtOutput, numSamples, bufferToFill);
+		}
     }
+
+	ableton::link::HostTimeFilter<ableton::platforms::windows::Clock> mHostTimeFilter;
+	double mSampleRate = 44100.;
+	std::chrono::microseconds mTimeAtLastClick = std::chrono::microseconds(0);
+
+	void renderMetronomeIntoBuffer(const ableton::Link::Timeline timeline, const double quantum, const std::chrono::microseconds beginHostTime, 
+		const int numSamples, const AudioSourceChannelInfo& bufferToFill)
+	{
+
+		using namespace std::chrono;
+
+		static const double highTone = 1567.98;
+		static const double lowTone = 1108.73;
+		static const auto clickDuration = duration<double>{ 0.1 };
+
+		const auto microsPerSample = 1e6 / mSampleRate;
+
+		
+		for (int sample = 0; sample < numSamples; ++sample)
+		{
+			float amplitude = 0.;
+			const auto hostTime = beginHostTime + microseconds(llround(sample * microsPerSample));
+			const auto lastSampleHostTime = hostTime - microseconds(llround(microsPerSample));
+
+			if (timeline.beatAtTime(hostTime, quantum) >= 0.)
+			{
+				if (timeline.phaseAtTime(hostTime, 1) < timeline.phaseAtTime(lastSampleHostTime, 1))
+				{
+					mTimeAtLastClick = hostTime;
+				}
+
+				const auto secondsAfterClick = duration_cast<duration<double>>(hostTime - mTimeAtLastClick);
+
+				if (secondsAfterClick < clickDuration)
+				{
+					const auto freq = floor(timeline.phaseAtTime(hostTime, quantum)) == 0 ? highTone : lowTone;
+					amplitude = cos(2 * M_PI * secondsAfterClick.count() * freq) * (1 - sin(5 * M_PI * secondsAfterClick.count()));
+				}
+			}
+
+			for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
+			{
+				bufferToFill.buffer->getWritePointer(channel)[sample] = amplitude * 0.5;
+			}
+		}
+		
+	}
+	
 
     void releaseResources() override
     {
@@ -234,9 +313,9 @@ private:
 
     // Your private member variables go here...
 	ScopedPointer<ableton::Link> link;
-	double tempo;
-	std::size_t numPeers;
-	std::size_t quantum;
+	double tempo = 120.0;
+	std::size_t numPeers = 0;
+	std::size_t quantum = 4;
 
 	TextEditor linkStatus;
 	TextButton linkButton;
