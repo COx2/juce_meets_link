@@ -275,6 +275,10 @@ public:
 		
 			auto timeline = link->captureAppTimeline();
 
+			//timeline.forceBeatAtTime(0.0, time, quantum);
+
+			timeline.requestBeatAtTime(0.0, time, quantum);
+
 			timeline.setTempo(tempoSlider.getValue(), time);
 
 			link->commitAudioTimeline(timeline);
