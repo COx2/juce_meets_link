@@ -11,8 +11,7 @@
 // include link library.
 #include "ableton/Link.hpp"
 #include "ableton/link/HostTimeFilter.hpp"
-////
-#define M_PI       3.14159265358979323846   // pi
+
 
 //==============================================================================
 /*
@@ -146,7 +145,17 @@ public:
 		}
     }
 
+// Select HostTimeFilter for buid platform.
+#if JUCE_WINDOWS
 	ableton::link::HostTimeFilter<ableton::platforms::windows::Clock> mHostTimeFilter;
+#elif JUCE_MAC
+    ableton::link::HostTimeFilter<ableton::platforms::darwin::Clock> mHostTimeFilter;
+#elif JUCE_LINUX
+    ableton::link::HostTimeFilter<ableton::link::platform::Clock> mHostTimeFilter;
+#else
+    ableton::link::HostTimeFilter<ableton::link::platform::Clock> mHostTimeFilter;
+#endif
+
 	double mSampleRate = 44100.;
 	std::chrono::microseconds mTimeAtLastClick = std::chrono::microseconds(0);
 
@@ -181,7 +190,7 @@ public:
 				if (secondsAfterClick < clickDuration)
 				{
 					const auto freq = floor(timeline.phaseAtTime(hostTime, quantum)) == 0 ? highTone : lowTone;
-					amplitude = cos(2 * M_PI * secondsAfterClick.count() * freq) * (1 - sin(5 * M_PI * secondsAfterClick.count()));
+                    amplitude = cos(2 * juce::MathConstants<float>::pi * secondsAfterClick.count() * freq) * (1 - sin(5 * juce::MathConstants<float>::pi * secondsAfterClick.count()));
 				}
 			}
 
