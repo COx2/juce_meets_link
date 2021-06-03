@@ -9,8 +9,9 @@
 #include <JuceHeader.h>
 
 // include link library.
-#include <ableton/Link.hpp>
-#include <ableton/link/HostTimeFilter.hpp>
+#include "ableton/Link.hpp"
+#include "ableton/link/Timeline.hpp"
+#include "ableton/link/HostTimeFilter.hpp"
 
 
 //==============================================================================
@@ -19,9 +20,9 @@
     your controls and content.
 */
 class MainContentComponent   : public juce::AudioAppComponent
-    , private Button::Listener
-    , private Slider::Listener
-    , private Timer
+    , private juce::Button::Listener
+    , private juce::Slider::Listener
+    , private juce::Timer
 {
 public:
     //==============================================================================
@@ -31,7 +32,6 @@ public:
 
         // specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
-
 
         numPeers = 0;
 
@@ -82,13 +82,11 @@ public:
         deviceSettingButton.addListener(this);
 
         startTimerHz(60);
-        
     }
 
     ~MainContentComponent()
     {
         link->enable(false);
-
         shutdownAudio();
     }
 
@@ -120,28 +118,30 @@ public:
         // the buffer at the appropriate beats.
 
         //const auto hostTime = link->clock().micros();
+        if (link.get() != nullptr)
+        {
+            auto hostTime = link->clock().micros();//std::chrono::microseconds(0);
+            if (deviceManager.getCurrentAudioDevice() != nullptr) {
 
-        auto hostTime = link->clock().micros();//std::chrono::microseconds(0);
-        if (deviceManager.getCurrentAudioDevice() != nullptr) {
+                auto mSampleRate = deviceManager.getCurrentAudioDevice()->getCurrentSampleRate();
+                auto dOutputLatency = deviceManager.getCurrentAudioDevice()->getOutputLatencyInSamples();
+                auto dBufferSize = deviceManager.getCurrentAudioDevice()->getCurrentBufferSizeSamples();
 
-            auto mSampleRate = deviceManager.getCurrentAudioDevice()->getCurrentSampleRate();
-            auto dOutputLatency = deviceManager.getCurrentAudioDevice()->getOutputLatencyInSamples();
-            auto dBufferSize = deviceManager.getCurrentAudioDevice()->getCurrentBufferSizeSamples();
+                auto mOutputLatency = std::chrono::microseconds(llround(dOutputLatency / mSampleRate));
 
-            auto mOutputLatency = std::chrono::microseconds(llround(dOutputLatency / mSampleRate));
+                mOutputLatency += std::chrono::microseconds(llround(1.0e6 * dBufferSize));
 
-            mOutputLatency += std::chrono::microseconds(llround(1.0e6 * dBufferSize));
+                const auto bufferBeginAtOutput = hostTime + mOutputLatency;
 
-            const auto bufferBeginAtOutput = hostTime + mOutputLatency;
+                auto sessionState = link->captureAppSessionState();
 
-            auto timeline = link->captureAppTimeline();
+                auto numSamples = bufferToFill.buffer->getNumSamples();
 
-            auto numSamples = bufferToFill.buffer->getNumSamples();
+                // Timeline modifications are complete, commit the results
+                link->commitAppSessionState(sessionState);
 
-            // Timeline modifications are complete, commit the results
-            link->commitAppTimeline(timeline);
-
-            renderMetronomeIntoBuffer(timeline, quantum, bufferBeginAtOutput, numSamples, bufferToFill);
+                renderMetronomeIntoBuffer(sessionState, quantum, bufferBeginAtOutput, numSamples, bufferToFill);
+            }
         }
     }
 
@@ -159,7 +159,7 @@ public:
     double mSampleRate = 44100.;
     std::chrono::microseconds mTimeAtLastClick = std::chrono::microseconds(0);
 
-    void renderMetronomeIntoBuffer(const ableton::Link::Timeline timeline, const double quantum, const std::chrono::microseconds beginHostTime, 
+    void renderMetronomeIntoBuffer(const ableton::Link::SessionState timeline, const double quantum, const std::chrono::microseconds beginHostTime, 
         const int numSamples, const AudioSourceChannelInfo& bufferToFill)
     {
 
@@ -232,15 +232,15 @@ public:
         statusInfo += "-------------------------------\n";
 
         const auto time = link->clock().micros();
-        auto timeline = link->captureAppTimeline();
+        auto sessionState = link->captureAppSessionState();
         //const auto beats = timeline.beatAtTime(time, quantum);
         //const auto phase = timeline.phaseAtTime(time, quantum);
 
         statusInfo += String("Peers: "   + String(link->numPeers()) + "\n");
         statusInfo += String("Quantum: " + String(quantum) + "\n");
-        statusInfo += String("Tempo: "   + String(timeline.tempo()) + "\n");
-        statusInfo += String("Beats: "   + String(timeline.beatAtTime(time, quantum)) + "\n");
-        statusInfo += String("Phase: "   + String(timeline.phaseAtTime(time, quantum)) + "\n");
+        statusInfo += String("Tempo: "   + String(sessionState.tempo()) + "\n");
+        statusInfo += String("Beats: "   + String(sessionState.beatAtTime(time, quantum)) + "\n");
+        statusInfo += String("Phase: "   + String(sessionState.phaseAtTime(time, quantum)) + "\n");
         //statusInfo += String("Time: " + String(timeline.timeAtBeat(beats, quantum).count()) + "\n");
 
         linkStatus.setText(statusInfo, dontSendNotification);
@@ -282,15 +282,15 @@ public:
 
             const auto time = link->clock().micros();
         
-            auto timeline = link->captureAppTimeline();
+            auto sessionState = link->captureAppSessionState();
 
             //timeline.forceBeatAtTime(0.0, time, quantum);
 
-            timeline.requestBeatAtTime(0.0, time, quantum);
+            sessionState.requestBeatAtTime(0.0, time, quantum);
 
-            timeline.setTempo(tempoSlider.getValue(), time);
+            sessionState.setTempo(tempoSlider.getValue(), time);
 
-            link->commitAudioTimeline(timeline);
+            link->commitAppSessionState(sessionState);
         }
     }
 
