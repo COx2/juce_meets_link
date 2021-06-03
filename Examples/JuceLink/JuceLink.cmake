@@ -35,11 +35,8 @@ target_compile_options(JuceLink
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror=return-type>
 )
 
-#target_include_directories(JuceLink
-#    PRIVATE
-#        ${CMAKE_CURRENT_LIST_DIR}/../../External/link/include
-#)
-
+# Link with Ableton::Link library via CMake.
+include(${CMAKE_CURRENT_LIST_DIR}/../../External/link/AbletonLinkConfig.cmake)
 target_link_libraries(JuceLink
     PRIVATE
         juce::juce_gui_extra
