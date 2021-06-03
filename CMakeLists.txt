@@ -6,10 +6,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # Set project name used as solution name 
 project(juce_meets_link VERSION 0.0.1)
 
-# If you've put JUCE in a subdirectory called JUCE
+# Add JUCE library to this project
 add_subdirectory(External/JUCE)
 
-# Add Ableton Link libraries to the target using the function from the SDK.
+# Add Ableton Link library to this project
 add_subdirectory(External/link)
 
 # Include sub projects
