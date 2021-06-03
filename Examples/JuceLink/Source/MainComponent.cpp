@@ -6,11 +6,11 @@
   ==============================================================================
 */
 
-#include "../JuceLibraryCode/JuceHeader.h"
+#include <JuceHeader.h>
 
 // include link library.
 #include <ableton/Link.hpp>
-#include "ableton/link/HostTimeFilter.hpp"
+#include <ableton/link/HostTimeFilter.hpp>
 
 
 //==============================================================================
@@ -18,7 +18,7 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainContentComponent   : public AudioAppComponent
+class MainContentComponent   : public juce::AudioAppComponent
     , private Button::Listener
     , private Slider::Listener
     , private Timer
@@ -39,7 +39,7 @@ public:
 
         quantum = 4;
 
-        link = new ableton::Link(tempo);
+        link = std::make_unique<ableton::Link>(tempo);
         
         link->enable(false);
         
@@ -325,7 +325,7 @@ private:
     }
 
     // Your private member variables go here...
-    ScopedPointer<ableton::Link> link;
+    std::unique_ptr<ableton::Link> link;
     double tempo = 120.0;
     std::size_t numPeers = 0;
     std::size_t quantum = 4;
@@ -335,8 +335,6 @@ private:
     Slider tempoSlider;
 
     TextButton deviceSettingButton;
-    
-    
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
 };

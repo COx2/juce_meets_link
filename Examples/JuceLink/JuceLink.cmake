@@ -43,6 +43,7 @@ target_compile_options(JuceLink
 target_link_libraries(JuceLink
     PRIVATE
         juce::juce_gui_extra
+        juce::juce_audio_utils
         Ableton::Link
     PUBLIC
         juce::juce_recommended_config_flags
