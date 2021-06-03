@@ -64,3 +64,4 @@ profile
 extras/Projucer/JUCECompileEngine.dylib
 ./Builds
 /Builds
+/JuceLibraryCode
