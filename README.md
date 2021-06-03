@@ -3,7 +3,7 @@ An example of integration of Ableton Link and JUCE6 with CMake.
 
 ***DEMO:***
 
-![DEMO](./img/JuceLink.gif)
+![DEMO](./Documents/img/JuceLink.gif)
 
 ## Requirement
 + CMake 3.15 or later
